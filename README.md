@@ -18,28 +18,31 @@ Antes de comenzar, asegúrate de tener instalados los siguientes programas:
    git clone url
    cd chat-microservice
 
-2.Crea un archivo .env en la raíz del proyecto con las siguientes variables de entorno:
+2. Crea un archivo `.env` en la raíz del proyecto con las siguientes variables de entorno:
 
    ```bash
    MONGO_URI=mongodb://db:27017/nest-chat
    JWT_SECRET=tu_secreto_jwt_aqui
    PORT=5000
    CLIENT_URL=http://localhost:3000
+   ```
 
-3.Instala las dependencias del proyecto:
+3. Instala las dependencias del proyecto:
 
    ```bash
    npm install
-
+   ```
 
 ## Configuración del proyecto
 
-1.Construye y levanta los contenedores con Docker Compose:
+1. Construye y levanta los contenedores con Docker Compose:
 
    ```bash
    docker-compose up --build
+   ```
 
-2.Accede a la aplicación en tu navegador en http://localhost:5000 e inicia el servidor:
- 
+2. Accede a la aplicación en tu navegador en [http://localhost:5000](http://localhost:5000) e inicia el servidor:
+
    ```bash
    npm run dev
+   ```
