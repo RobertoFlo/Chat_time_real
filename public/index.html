@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat en Tiempo Real</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }
+        #chat { border: 1px solid #ccc; height: 300px; overflow-y: scroll; padding: 10px; margin-bottom: 10px; }
+        #message { width: 80%; padding: 8px; }
+        button { padding: 8px 15px; }
+        .auth-form { margin-bottom: 20px; padding: 15px; background: #f5f5f5; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <!-- Formulario de Login/Registro -->
+    <div id="auth-section" class="auth-form">
+        <h2>Autenticación</h2>
+        <input id="username" type="text" placeholder="Usuario" required>
+        <input id="password" type="password" placeholder="Contraseña" required>
+        <button id="login-btn">Iniciar Sesión</button>
+        <button id="register-btn">Registrarse</button>
+    </div>
+
+    <!-- Chat (visible solo después de autenticar) -->
+    <div id="chat-section" class="hidden">
+        <h2>Chat en Tiempo Real</h2>
+        <div id="chat"></div>
+        <input id="message" type="text" placeholder="Escribe tu mensaje...">
+        <button id="send-btn">Enviar</button>
+    </div>
+
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script>
+        let socket;
+        let currentUser;
+        let jwtToken;
+
+        // Elementos del DOM
+        const authSection = document.getElementById('auth-section');
+        const chatSection = document.getElementById('chat-section');
+        const chatContainer = document.getElementById('chat');
+        const messageInput = document.getElementById('message');
+        const sendBtn = document.getElementById('send-btn');
+        const loginBtn = document.getElementById('login-btn');
+        const registerBtn = document.getElementById('register-btn');
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
+
+        // Funciones de autenticación
+        async function authenticate(url, username, password) {
+            const response = await fetch(`http://localhost:5000/api/auth/${url}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+            return await response.json();
+        }
+
+        // Configurar Socket.IO con autenticación JWT
+        function setupSocket() {
+            socket = io('http://localhost:5000', {
+                auth: { token: jwtToken }
+            });
+
+            socket.on('connect', () => {
+                console.log('Conectado al servidor de chat');
+                socket.emit('joinRoom', { room: 'general' });
+            });
+
+            socket.on('newMessage', (message) => {
+                const messageElement = document.createElement('div');
+                messageElement.innerHTML = `<strong>${message.sender.username}:</strong> ${message.content}`;
+                chatContainer.appendChild(messageElement);
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            });
+
+            socket.on('connect_error', (err) => {
+                console.error('Error de conexión:', err.message);
+            });
+        }
+
+        // Event Listeners
+        loginBtn.addEventListener('click', async () => {
+            const username = usernameInput.value;
+            const password = passwordInput.value;
+            
+            try {
+                const data = await authenticate('login', username, password);
+                if (data.token) {
+                    jwtToken = data.token;
+                    currentUser = username;
+                    authSection.classList.add('hidden');
+                    chatSection.classList.remove('hidden');
+                    setupSocket();
+                }
+            } catch (error) {
+                console.error('Error al iniciar sesión:', error);
+                alert('Credenciales incorrectas');
+            }
+        });
+
+        registerBtn.addEventListener('click', async () => {
+            const username = usernameInput.value;
+            const password = passwordInput.value;
+
+            if (password.length < 6) {
+            alert('La contraseña debe tener al menos 6 caracteres');
+            return;
+            }
+
+            try {
+            const data = await authenticate('register', username, password);
+            if (data.success) {
+                alert('Registro exitoso! Ahora puedes iniciar sesión');
+            } else {
+                alert(data.message || 'Error en el registro');
+            }
+            } catch (error) {
+            console.error('Error al registrar:', error);
+            alert('Error en el registro. Por favor, intenta nuevamente.');
+            }
+        });
+
+        sendBtn.addEventListener('click', () => {
+            const message = messageInput.value;
+            if (message.trim()) {
+                socket.emit('sendMessage', { 
+                    content: message, 
+                    room: 'general' 
+                });
+                messageInput.value = '';
+            }
+        });
+
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendBtn.click();
+            }
+        });
+    </script>
+</body>
+</html>

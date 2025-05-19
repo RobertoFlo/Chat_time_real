@@ -1,0 +1,27 @@
+version: '3'
+
+services:
+  db:
+    image: mongo:5
+    restart: always
+    ports:
+      - 27017:27017
+    environment:
+      MONGO_INITDB_DATABASE: nest-chat 
+    volumes:
+      - ./mongo:/data/db
+
+  app:
+    build: .
+    restart: always
+    ports:
+      - "5000:5000"
+    environment:
+      - MONGO_URI=mongodb://db:27017/nest-chat
+      - JWT_SECRET=tu_secreto_jwt_aqui
+    depends_on:
+      - db
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+      - ./public:/usr/src/app/public 
